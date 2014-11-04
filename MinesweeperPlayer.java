@@ -16,6 +16,9 @@ public class MinesweeperPlayer {
 	 * coordinate system while {@link Point} uses an x/y coordinate system.
 	 */
 	public static Collection<Point> solve(MinesweeperBoard board) {
-		return null;
+		SimpleSolver s = new SimpleSolver(board);
+		s.solve();
+
+		return s.getFlaggedTiles();
 	}
 }
