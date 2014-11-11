@@ -3,6 +3,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * represents a constraint such that the sum of all mines in points is equal to sum
+ */
 public class Constraint {
 	private final Set<Point> points;
 	private int sum;
@@ -28,13 +31,22 @@ public class Constraint {
 		return String.format("%s = %d", pString, sum);
 	}
 
+	/**
+	 * Simplify this constraint based on the knowledge provided in knownTiles
+	 * @param knownTiles
+	 */
 	public void reduce(Map<Point, Boolean> knownTiles) {
 		for (Map.Entry<Point, Boolean> entry : knownTiles.entrySet())
 			if (points.remove(entry.getKey()))
 				sum -= entry.getValue() ? 1 : 0;
 	}
 
-	public Map<Point, Boolean> getSatisfiableConfiguration() {
+	/**
+	 * returns a configuration of either all mines or all empty tiles, if such a configuration is possible based on this
+	 * constraint.  Otherwise returns null
+	 * @return
+	 */
+	public Map<Point, Boolean> getTriviallySatisfiableConfiguration() {
 		if (sum != 0 && sum != points.size())
 			return null;
 
@@ -45,6 +57,12 @@ public class Constraint {
 		return sum == 0 || sum == points.size();
 	}
 
+	/**
+	 * returns true if the given tile configuration fully resolves this constraint, false if it does not, and null if the
+	 * provided configuration is inconclusive
+	 * @param tiles
+	 * @return
+	 */
 	public Boolean isSatisfied(Map<Point, Boolean> tiles) {
 		int count = 0, sum = 0;
 		for (Point p : this.points)
@@ -62,6 +80,11 @@ public class Constraint {
 		return null;
 	}
 
+	/**
+	 * returns whether the given constraint shares any tiles with this constraint
+	 * @param constraint
+	 * @return
+	 */
 	public boolean intersects(Constraint constraint) {
 		return this.points.stream().anyMatch(constraint.points::contains);
 	}

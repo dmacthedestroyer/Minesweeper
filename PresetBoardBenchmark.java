@@ -1,37 +1,38 @@
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class Main {
+/**
+ * Prints the total number of randomly generated games out of 100 that were winnable in at least 3 attempts at each of
+ * the three preset Minesweeper difficulties
+ */
+public class PresetBoardBenchmark {
 	public static void main(String[] args) throws IOException {
-		final int runs = 1000;
-
+		final int runs = 100;
+		final int attemptsPerRun = 3;
 
 		for (Difficulty d : Difficulty.values()) {
-			long start = System.currentTimeMillis();
-
 			List<Boolean> games = IntStream.range(0, runs)
 					.parallel()
-					.mapToObj(i -> getOutcome(d))
-					.filter(b -> b != null)
+					.mapToObj(i -> getOutcome(d, attemptsPerRun))
 					.collect(Collectors.toList());
 
-			int totalFairGames = games.size();
+			int totalGames = games.size();
 			long totalWins = games.stream().filter(b -> b).count();
-			System.out.println(String.format("%12s Win pct: %5d/%-5d (%.3f%%) %.3f games/second", d, totalWins, totalFairGames, 100 * totalWins / (double) totalFairGames, (1000.0 * runs) / (System.currentTimeMillis() - start)));
+			double winPercentage = 100 * totalWins / (double) games.size();
+			System.out.println(String.format("%12s Win pct: %5d/%-5d (%.3f%%)", d, totalWins, totalGames, winPercentage));
 		}
 	}
 
-	private static Boolean getOutcome(Difficulty d) {
-		for (int i = 0; i < 5; i++) {
-			SimpleSolver ss = new SimpleSolver(d.buildBoard());
+	private static boolean getOutcome(Difficulty d, final int attempts) {
+		for (int i = 0; i < attempts; i++) {
+			MinesweeperSolver ss = new MinesweeperSolver(d.buildBoard());
 			ss.solve();
 			Boolean isWin = ss.isWin();
 
 			if (isWin == null)
-				i--;
+				i--;//don't count games we lose on the first attempt
 			else if (isWin)
 				return true;
 		}

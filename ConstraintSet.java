@@ -28,6 +28,12 @@ public class ConstraintSet {
 		constraints = new ArrayList<>();
 	}
 
+	/**
+	 * returns the first constraint which is resolved to contain either all empty tiles or all mines, or null if no such
+	 * constraint exists
+	 * @param knownTiles
+	 * @return
+	 */
 	public Constraint findTriviallySatisfiedConstraint(Map<Point, Boolean> knownTiles) {
 		for (int i = 0; i < constraints.size(); i++) {
 			constraints.get(i).reduce(knownTiles);
@@ -48,11 +54,18 @@ public class ConstraintSet {
 		return constraints.stream().map(Constraint::toString).collect(Collectors.joining("\n"));
 	}
 
+	/**
+	 * Finds the probability of any given tile having a mine.  This is done by:
+	 *  1) combining all intersecting constraints (have at least one tile in common)
+	 *  2) finding all satisfying configurations of those grouped constraints
+	 *  3) calculating the occurrence of a mine for each tile in the set of satisfying configurations
+	 * @return The list of tiles and their probabilities, as well as the average number of mines from all satisfying
+	 * configurations
+	 */
 	public MineProbabilities calculateProbabilities() {
 		List<Map<Point, Boolean>> configurations = findSatisfyingConfigurations();
 		if (configurations.isEmpty())
 			return new MineProbabilities(new HashMap<>(), 0);
-
 
 		Map<Point, Integer> mineCounts = new HashMap<>();
 		List<Long> mineTotals = new ArrayList<>();
@@ -78,12 +91,16 @@ public class ConstraintSet {
 		return new MineProbabilities(isMineProbabilities, avgMines);
 	}
 
-	private List<ArrayList<Constraint>> getIntersectingConstraints() {
-		ArrayList<ArrayList<Constraint>> groups = new ArrayList<>();
+	/**
+	 * Returns all groupings of constraints that intersect each other
+	 * @return
+	 */
+	private List<List<Constraint>> getIntersectingConstraints() {
+		ArrayList<List<Constraint>> groups = new ArrayList<>();
 
-		for (Constraint constraint : constraints) {
-			ArrayList<Constraint> group;
-			Optional<ArrayList<Constraint>> existingGroup = groups.stream()
+		for (Constraint constraint : this.constraints) {
+			List<Constraint> group;
+			Optional<List<Constraint>> existingGroup = groups.stream()
 					.filter(g -> g.stream().anyMatch(constraint::intersects))
 					.findFirst();
 
@@ -98,6 +115,10 @@ public class ConstraintSet {
 		return groups;
 	}
 
+	/**
+	 * returns all variations of mine configurations based on the constraints contained in this ConstraintSet
+	 * @return
+	 */
 	public List<Map<Point, Boolean>> findSatisfyingConfigurations() {
 		List<Map<Point, Boolean>> satisfyingConfigurations = new ArrayList<>();
 		for (List<Constraint> group : getIntersectingConstraints())
@@ -107,15 +128,27 @@ public class ConstraintSet {
 		return satisfyingConfigurations;
 	}
 
+	/**
+	 * finds all variations of mine configurations that satisfy the given group of constraints
+	 * @param constraints
+	 * @return
+	 */
 	private List<Map<Point, Boolean>> findSatisfyingConfigurations(List<Constraint> constraints) {
 		List<Map<Point, Boolean>> satisfyingConfigurations = new ArrayList<>();
 		for (Point point : constraints.stream().flatMap(c -> c.getPoints().stream()).collect(Collectors.toSet()))
-			satisfyingConfigurations = findSatisfyingConfigurations(satisfyingConfigurations, point);
+			satisfyingConfigurations = introduceNewPoint(satisfyingConfigurations, point);
 
 		return satisfyingConfigurations;
 	}
 
-	private List<Map<Point, Boolean>> findSatisfyingConfigurations(List<Map<Point, Boolean>> existingConfigurations, Point newPoint) {
+	/**
+	 * Introduces the additional variable, newPoint, to the existing configurations such that doing so will provide a list
+	 * of all configurations that match all points in existingConfigurations as well as with newPoint
+	 * @param existingConfigurations
+	 * @param newPoint
+	 * @return
+	 */
+	private List<Map<Point, Boolean>> introduceNewPoint(List<Map<Point, Boolean>> existingConfigurations, Point newPoint) {
 		List<Map<Point, Boolean>> satisfyingConfigurations = new ArrayList<>();
 		if (existingConfigurations.size() == 0) {
 			for (boolean isMine : new boolean[]{true, false}) {

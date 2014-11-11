@@ -3,12 +3,12 @@ import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class SimpleSolver {
+public class MinesweeperSolver {
 	private MinesweeperBoard board;
 	private Map<Point, Boolean> knownTiles;
 	private ConstraintSet constraints;
 
-	public SimpleSolver(MinesweeperBoard board) {
+	public MinesweeperSolver(MinesweeperBoard board) {
 		this.board = board;
 
 		knownTiles = new HashMap<>();
@@ -26,7 +26,7 @@ public class SimpleSolver {
 			makeGuess();
 		} else {
 			debug(printDivider() + "\nFound trivially satisfied constraint: " + solvedConstraint);
-			for (Map.Entry<Point, Boolean> entry : solvedConstraint.getSatisfiableConfiguration().entrySet()) {
+			for (Map.Entry<Point, Boolean> entry : solvedConstraint.getTriviallySatisfiableConfiguration().entrySet()) {
 				if (entry.getValue())
 					flagTile(entry.getKey());
 				else revealTile(entry.getKey());
@@ -72,11 +72,19 @@ public class SimpleSolver {
 		}
 	}
 
+	/**
+	 * flags a tile as a mine
+	 * @param p
+	 */
 	private void flagTile(Point p) {
 		debug("Flagging " + printPoint(p));
 		knownTiles.put(p, true);
 	}
 
+	/**
+	 * reveals a tile
+	 * @param p
+	 */
 	private void revealTile(Point p) {
 		debug("Revealing " + printPoint(p));
 		board.revealTile(p.y, p.x);
@@ -106,14 +114,30 @@ public class SimpleSolver {
 		return unexploredTiles;
 	}
 
+	/**
+	 * convert a (row,column) coordinate into an (x,y) coordinate
+	 * @param row
+	 * @param col
+	 * @return
+	 */
 	private Point getPoint(int row, int col){
 		return new Point(col, row);
 	}
 
+	/**
+	 * return the value exposed on MinesweeperBoard.getTile(row, column) for a point in (x, y) format
+	 * @param p
+	 * @return
+	 */
 	private int getTile(Point p) {
 		return board.getTile(p.y, p.x);
 	}
 
+	/**
+	 * returns all points touching the given point, including itself
+	 * @param p
+	 * @return
+	 */
 	private Set<Point> getNeighbors(Point p) {
 		Set<Point> neighbors = new HashSet<>();
 		for (int col = Math.max(0, p.x - 1); col < Math.min(board.getWidth(), p.x + 2); col++)
@@ -127,6 +151,11 @@ public class SimpleSolver {
 		return board.hasRevealedMine() || isWin();
 	}
 
+	/**
+	 * returns true if all non-mine tiles have been revealed, false if a mine was hit and null if a mine was hit on the
+	 * first move
+	 * @return
+	 */
 	public Boolean isWin() {
 		int revealedTileCount = knownTiles.size();
 
@@ -135,6 +164,8 @@ public class SimpleSolver {
 
 		return !board.hasRevealedMine() && ((board.getHeight() * board.getWidth()) == revealedTileCount);
 	}
+
+	/********* Bunch of debug stuff for debugging stuff *********/
 
 	private String printPoint(Point p) {
 		return String.format("<%d,%d>", p.y, p.x);
