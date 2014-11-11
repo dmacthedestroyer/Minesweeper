@@ -1,29 +1,28 @@
 import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Main {
 	public static void main(String[] args) throws IOException {
-		final int runs = 500;
+		final int runs = 1000;
 
 
 		for (Difficulty d : Difficulty.values()) {
-			long start = System.currentTimeMillis(), totalWins = 0, totalFairGames = 0;
-			for (int i = 0; i < runs; i++) {
-				SimpleSolver ss = new SimpleSolver(d.buildBoard());
-				try {
-					ss.solve();
-				} catch (Exception e) {
-					System.out.println(ss.dumpDebugInfo());
-					e.printStackTrace();
-					return;
-				}
-				Boolean isWin = ss.isWin();
-				if (isWin != null) {
-					totalFairGames++;
-					if (isWin)
-						totalWins++;
-				}
-			}
+			long start = System.currentTimeMillis();
 
+			List<Boolean> games = IntStream.range(0, runs)
+					.parallel()
+					.mapToObj(i -> {
+						SimpleSolver ss = new SimpleSolver(d.buildBoard());
+						ss.solve();
+						return ss.isWin();
+					})
+					.filter(b -> b != null)
+					.collect(Collectors.toList());
+
+			int totalFairGames = games.size();
+			long totalWins = games.stream().filter(b -> b).count();
 			System.out.println(String.format("%12s Win pct: %5d/%-5d (%.3f%%) %.3f games/second", d, totalWins, totalFairGames, 100 * totalWins / (double) totalFairGames, (1000.0 * runs) / (System.currentTimeMillis() - start)));
 		}
 	}
