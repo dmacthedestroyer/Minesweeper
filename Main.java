@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -13,11 +14,7 @@ public class Main {
 
 			List<Boolean> games = IntStream.range(0, runs)
 					.parallel()
-					.mapToObj(i -> {
-						SimpleSolver ss = new SimpleSolver(d.buildBoard());
-						ss.solve();
-						return ss.isWin();
-					})
+					.mapToObj(i -> getOutcome(d))
 					.filter(b -> b != null)
 					.collect(Collectors.toList());
 
@@ -25,6 +22,20 @@ public class Main {
 			long totalWins = games.stream().filter(b -> b).count();
 			System.out.println(String.format("%12s Win pct: %5d/%-5d (%.3f%%) %.3f games/second", d, totalWins, totalFairGames, 100 * totalWins / (double) totalFairGames, (1000.0 * runs) / (System.currentTimeMillis() - start)));
 		}
+	}
+
+	private static Boolean getOutcome(Difficulty d) {
+		for (int i = 0; i < 5; i++) {
+			SimpleSolver ss = new SimpleSolver(d.buildBoard());
+			ss.solve();
+			Boolean isWin = ss.isWin();
+
+			if (isWin == null)
+				i--;
+			else if (isWin)
+				return true;
+		}
+		return false;
 	}
 
 	private enum Difficulty {

@@ -1,5 +1,6 @@
 import java.awt.*;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class SimpleSolver {
@@ -35,44 +36,39 @@ public class SimpleSolver {
 	}
 
 	private void makeGuess() {
-		Map<Point, Double> probabilities = constraints.calculateProbabilities();
+		ConstraintSet.MineProbabilities probabilities = constraints.calculateProbabilities();
+		boolean revealedOrFlaggedTile = false;
+		List<Point> unexploredNonFrontierTiles = getUnexploredTiles().stream().filter(p -> !probabilities.getProbabilities().containsKey(p)).collect(Collectors.toList());
+		double unexploredMineProbability = unexploredNonFrontierTiles.isEmpty() ? 1.0 : (board.getMines() - getFlaggedTiles().size() - probabilities.getAvgMines()) / unexploredNonFrontierTiles.size();
 
-		if (probabilities.size() > 0) {
-			boolean revealedOrFlaggedTile = false;
+		debug(String.format("%s\nMaking best guess from following choices:\n%s\n%s\n%s", printDivider(), printProbabilities(probabilities.getProbabilities()), printDivider(), printBoard()));
 
-			debug(String.format("%s\nMaking best guess from following choices:\n%s\n%s\n%s", printDivider(), printProbabilities(probabilities), printDivider(), printBoard()));
-
-			for (Map.Entry<Point, Double> e : probabilities.entrySet()) {
-				if (e.getValue() <= 0) {
-					revealTile(e.getKey());
-					revealedOrFlaggedTile = true;
-				}
-				if (e.getValue() >= 1) {
-					flagTile(e.getKey());
-					revealedOrFlaggedTile = true;
-				}
+		for (Map.Entry<Point, Double> e : probabilities.getProbabilities().entrySet())
+			if (e.getValue() <= 0) {
+				revealTile(e.getKey());
+				revealedOrFlaggedTile = true;
+			} else if (e.getValue() >= 1) {
+				flagTile(e.getKey());
+				revealedOrFlaggedTile = true;
 			}
 
-			if (!revealedOrFlaggedTile) {
-				Map.Entry<Point, Double> safestMove = probabilities.entrySet().stream()
-						.sorted((e1, e2) -> ((int) (e1.getValue() * 10000)) - ((int) (e2.getValue() * 10000)))
-						.findFirst()
-						.orElseThrow(() -> new IllegalStateException("Should have revealed or flagged something here, but didn't"));
-				debug(String.format("Chose %s:%s", printPoint(safestMove.getKey()), safestMove.getValue()));
-				revealTile(safestMove.getKey());
+		if (!revealedOrFlaggedTile) {
+			Optional<Map.Entry<Point, Double>> safestMove = probabilities.getProbabilities().entrySet().stream()
+					.sorted((e1, e2) -> ((int) (e1.getValue() * 10000)) - ((int) (e2.getValue() * 10000)))
+					.findFirst();
+
+			if (safestMove.isPresent() && safestMove.get().getValue() <= unexploredMineProbability) {
+				debug(String.format("Chose %s:%s", printPoint(safestMove.get().getKey()), safestMove.get().getValue()));
+				revealTile(safestMove.get().getKey());
+				debug(printDivider());
+			} else {
+				Optional<Point> tileToReveal = unexploredNonFrontierTiles.stream()
+						.sorted((p1, p2) -> (int) (getNeighbors(p1).stream().filter(p -> probabilities.getProbabilities().containsKey(p)).count() - getNeighbors(p2).stream().filter(p -> probabilities.getProbabilities().containsKey(p)).count()))
+						.findFirst();
+				debug(String.format("%s\nNo probabilistic choices, choosing random hidden tile from list of %s", printDivider(), board.getHeight() * board.getWidth() - knownTiles.size()));
+				revealTile(tileToReveal.get()); //ignoring this possible exception
 				debug(printDivider());
 			}
-		} else {
-			for (int r = 0; r < board.getHeight(); r++)
-				for (int c = 0; c < board.getWidth(); c++) {
-					Point p = getPoint(r, c);
-					if (!knownTiles.containsKey(p)) {
-						debug(String.format("%s\nNo probabilistic choices, choosing random hidden tile from list of %s", printDivider(),board.getHeight() * board.getWidth() - knownTiles.size()));
-						revealTile(p);
-						debug(printDivider());
-						return;
-					}
-				}
 		}
 	}
 
@@ -96,6 +92,18 @@ public class SimpleSolver {
 				.filter(Map.Entry::getValue)
 				.map(Map.Entry::getKey)
 				.collect(Collectors.toSet());
+	}
+
+	public Set<Point> getUnexploredTiles() {
+		Set<Point> unexploredTiles = new HashSet<>();
+		for (int row = 0; row < board.getHeight(); row++)
+			for (int col = 0; col < board.getWidth(); col++) {
+				Point p = getPoint(row, col);
+				if (!knownTiles.containsKey(p))
+					unexploredTiles.add(p);
+			}
+
+		return unexploredTiles;
 	}
 
 	private Point getPoint(int row, int col){
