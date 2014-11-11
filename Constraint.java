@@ -41,20 +41,16 @@ public class Constraint {
 		return points.stream().collect(Collectors.toMap(p -> p, p -> sum != 0));
 	}
 
-	public Boolean isSatisfied() {
+	public Boolean isTriviallySatisfied() {
 		return sum == 0 || sum == points.size();
 	}
 
-	public boolean isEmpty() {
-		return points.size() == 0;
-	}
-
-	public Boolean isSatisfied(Map<Point, Boolean> m) {
+	public Boolean isSatisfied(Map<Point, Boolean> tiles) {
 		int count = 0, sum = 0;
-		for (Point p : points)
-			if (m.containsKey(p)) {
+		for (Point p : this.points)
+			if (tiles.containsKey(p)) {
 				count++;
-				sum += (m.get(p) ? 1 : 0);
+				sum += (tiles.get(p) ? 1 : 0);
 			}
 
 		if (count == points.size())
@@ -67,6 +63,6 @@ public class Constraint {
 	}
 
 	public boolean intersects(Constraint constraint) {
-		return points.stream().anyMatch(constraint.points::contains);
+		return this.points.stream().anyMatch(constraint.points::contains);
 	}
 }

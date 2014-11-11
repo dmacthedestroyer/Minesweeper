@@ -40,14 +40,7 @@ public class SimpleSolver {
 		if (probabilities.size() > 0) {
 			boolean revealedOrFlaggedTile = false;
 
-			String foo = probabilities.entrySet().stream()
-					.sorted((e1, e2) -> ((int) (e1.getValue() * 10000)) - ((int) (e2.getValue() * 10000)))
-					.map(e -> String.format("%s:%s", printPoint(e.getKey()), e.getValue()))
-					.collect(Collectors.joining("\n"));
-			debug(printDivider());
-			debug("Making best guess from following choices:\n" + foo);
-			debug(printDivider());
-			debug(printBoard());
+			debug(String.format("%s\nMaking best guess from following choices:\n%s\n%s\n%s", printDivider(), printProbabilities(probabilities), printDivider(), printBoard()));
 
 			for (Map.Entry<Point, Double> e : probabilities.entrySet()) {
 				if (e.getValue() <= 0) {
@@ -61,24 +54,20 @@ public class SimpleSolver {
 			}
 
 			if (!revealedOrFlaggedTile) {
-				Optional<Map.Entry<Point, Double>> safestMove = probabilities.entrySet().stream()
+				Map.Entry<Point, Double> safestMove = probabilities.entrySet().stream()
 						.sorted((e1, e2) -> ((int) (e1.getValue() * 10000)) - ((int) (e2.getValue() * 10000)))
-						.findFirst();
-				if (safestMove.isPresent()) {
-					debug(String.format("Chose %s:%s", printPoint(safestMove.get().getKey()), safestMove.get().getValue()));
-					revealTile(safestMove.get().getKey());
-					debug(printDivider());
-				} else {
-					throw new IllegalStateException("Should have revealed or flagged something here, but didn't");
-				}
+						.findFirst()
+						.orElseThrow(() -> new IllegalStateException("Should have revealed or flagged something here, but didn't"));
+				debug(String.format("Chose %s:%s", printPoint(safestMove.getKey()), safestMove.getValue()));
+				revealTile(safestMove.getKey());
+				debug(printDivider());
 			}
 		} else {
 			for (int r = 0; r < board.getHeight(); r++)
 				for (int c = 0; c < board.getWidth(); c++) {
 					Point p = getPoint(r, c);
 					if (!knownTiles.containsKey(p)) {
-						debug(printDivider());
-						debug("No probabilistic choices, choosing random hidden tile from list of " + ((board.getHeight() * board.getWidth()) - knownTiles.size()));
+						debug(String.format("%s\nNo probabilistic choices, choosing random hidden tile from list of %s", printDivider(),board.getHeight() * board.getWidth() - knownTiles.size()));
 						revealTile(p);
 						debug(printDivider());
 						return;
@@ -145,6 +134,13 @@ public class SimpleSolver {
 
 	private String printDivider(){
 		return "------------------------------------------";
+	}
+
+	private String printProbabilities(Map<Point, Double> probabilities) {
+		return probabilities.entrySet().stream()
+				.sorted((e1, e2) -> ((int) (e1.getValue() * 10000)) - ((int) (e2.getValue() * 10000)))
+				.map(e -> String.format("%s:%s", printPoint(e.getKey()), e.getValue()))
+				.collect(Collectors.joining("\n"));
 	}
 
 	private String printBoard() {

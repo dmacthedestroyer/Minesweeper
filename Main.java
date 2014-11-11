@@ -9,11 +9,12 @@ public class Main {
 			long start = System.currentTimeMillis(), totalWins = 0, totalFairGames = 0;
 			for (int i = 0; i < runs; i++) {
 				SimpleSolver ss = new SimpleSolver(d.buildBoard());
-				try{
+				try {
 					ss.solve();
-				}catch (IllegalStateException ise){
+				} catch (Exception e) {
 					System.out.println(ss.dumpDebugInfo());
-					ise.printStackTrace();
+					e.printStackTrace();
+					return;
 				}
 				Boolean isWin = ss.isWin();
 				if (isWin != null) {

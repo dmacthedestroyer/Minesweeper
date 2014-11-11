@@ -13,9 +13,9 @@ public class ConstraintSet {
 	public Constraint findTriviallySatisfiedConstraint(Map<Point, Boolean> knownTiles) {
 		for (int i = 0; i < constraints.size(); i++) {
 			constraints.get(i).reduce(knownTiles);
-			if (constraints.get(i).isEmpty())
+			if (constraints.get(i).getPoints().size() == 0)
 				constraints.remove(i--);
-			else if (constraints.get(i).isSatisfied())
+			else if (constraints.get(i).isTriviallySatisfied())
 				return constraints.remove(i);
 		}
 
