@@ -4,12 +4,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * Prints the total number of randomly generated games out of 100 that were winnable in at least 3 attempts at each of
+ * Prints the total number of randomly generated games out of 500 that were winnable in at least 5 attempts at each of
  * the three preset Minesweeper difficulties
  */
 public class PresetBoardBenchmark {
 	public static void main(String[] args) throws IOException {
-		final int runs = 1000;
+		final int runs = 500;
 		final int attemptsPerRun = 5;
 
 		for (Difficulty d : Difficulty.values()) {
@@ -42,15 +42,12 @@ public class PresetBoardBenchmark {
 	}
 
 	private enum Difficulty {
-		Weird,
 		Beginner,
 		Intermediate,
 		Expert;
 
 		public MinesweeperBoard buildBoard() {
 			switch (this) {
-				case Weird:
-					return new MinesweeperBoard(5, 3, 4);
 				case Beginner:
 					return new MinesweeperBoard(9, 9, 10);
 				case Intermediate:
