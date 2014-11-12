@@ -69,13 +69,13 @@ public class Constraint {
 			if (tiles.containsKey(p)) {
 				count++;
 				sum += (tiles.get(p) ? 1 : 0);
+
+				if (sum > this.sum)
+					return false;
 			}
 
 		if (count == points.size())
 			return sum == this.sum;
-
-		if (sum > this.sum)
-			return false;
 
 		return null;
 	}

@@ -4,24 +4,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ConstraintSet {
-	public class MineProbabilities {
-		private final Map<Point, Double> probabilities;
-		private final double avgMines;
-
-		public MineProbabilities(Map<Point, Double> probabilities, double avgMines) {
-			this.probabilities = probabilities;
-			this.avgMines = avgMines;
-		}
-
-		public Map<Point, Double> getProbabilities() {
-			return probabilities;
-		}
-
-		public double getAvgMines() {
-			return avgMines;
-		}
-	}
-
 	private final List<Constraint> constraints;
 
 	public ConstraintSet() {
@@ -62,33 +44,23 @@ public class ConstraintSet {
 	 * @return The list of tiles and their probabilities, as well as the average number of mines from all satisfying
 	 * configurations
 	 */
-	public MineProbabilities calculateProbabilities() {
+	public Map<Point, Double> calculateProbabilities() {
 		List<Map<Point, Boolean>> configurations = findSatisfyingConfigurations();
 		if (configurations.isEmpty())
-			return new MineProbabilities(new HashMap<>(), 0);
+			return new HashMap<>();
 
 		Map<Point, Integer> mineCounts = new HashMap<>();
-		List<Long> mineTotals = new ArrayList<>();
+		Map<Point, Integer> tileOccurrences = new HashMap<>();
 
-		for (Map<Point, Boolean> configuration : configurations) {
-			long mineTotal = 0;
+		for (Map<Point, Boolean> configuration : configurations)
 			for (Point key : configuration.keySet()) {
-				if (!mineCounts.containsKey(key))
-					mineCounts.put(key, 0);
-				if (configuration.get(key)) {
-					mineTotal++;
-					mineCounts.put(key, 1 + mineCounts.get(key));
-				}
+				tileOccurrences.put(key, 1 + (tileOccurrences.containsKey(key) ? tileOccurrences.get(key) : 0));
+				if (configuration.get(key))
+					mineCounts.put(key, 1 + (mineCounts.containsKey(key) ? mineCounts.get(key) : 0));
 			}
-			mineTotals.add(mineTotal);
-		}
 
-		Map<Point, Double> isMineProbabilities = mineCounts.entrySet().stream()
-				.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue() / (double) configurations.size()));
-
-		double avgMines = mineTotals.stream().mapToLong(i -> i).average().orElse(0.0);
-
-		return new MineProbabilities(isMineProbabilities, avgMines);
+		return tileOccurrences.keySet().stream()
+				.collect(Collectors.toMap(k -> k, k -> mineCounts.getOrDefault(k, 0) / (double) tileOccurrences.get(k)));
 	}
 
 	/**

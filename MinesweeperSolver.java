@@ -36,14 +36,15 @@ public class MinesweeperSolver {
 	}
 
 	private void makeGuess() {
-		ConstraintSet.MineProbabilities probabilities = constraints.calculateProbabilities();
+		Map<Point, Double> probabilities = constraints.calculateProbabilities();
+		double avgMines = probabilities.values().stream().mapToDouble(v -> v).sum();
 		boolean revealedOrFlaggedTile = false;
-		List<Point> unexploredNonFrontierTiles = getUnexploredTiles().stream().filter(p -> !probabilities.getProbabilities().containsKey(p)).collect(Collectors.toList());
-		double unexploredMineProbability = unexploredNonFrontierTiles.isEmpty() ? 1.0 : (board.getMines() - getFlaggedTiles().size() - probabilities.getAvgMines()) / unexploredNonFrontierTiles.size();
+		List<Point> unexploredNonFrontierTiles = getUnexploredTiles().stream().filter(p -> !probabilities.containsKey(p)).collect(Collectors.toList());
+		double unexploredMineProbability = unexploredNonFrontierTiles.isEmpty() ? 1.0 : (board.getMines() - getFlaggedTiles().size() - avgMines) / unexploredNonFrontierTiles.size();
 
-		debug(String.format("%s\nMaking best guess from following choices:\n%s\n%s\n%s", printDivider(), printProbabilities(probabilities.getProbabilities()), printDivider(), printBoard()));
+		debug(String.format("%s\nMaking best guess from following choices:\n%s\n%s\n%s", printDivider(), printProbabilities(probabilities), printDivider(), printBoard()));
 
-		for (Map.Entry<Point, Double> e : probabilities.getProbabilities().entrySet())
+		for (Map.Entry<Point, Double> e : probabilities.entrySet())
 			if (e.getValue() <= 0) {
 				revealTile(e.getKey());
 				revealedOrFlaggedTile = true;
@@ -53,7 +54,7 @@ public class MinesweeperSolver {
 			}
 
 		if (!revealedOrFlaggedTile) {
-			Optional<Map.Entry<Point, Double>> safestMove = probabilities.getProbabilities().entrySet().stream()
+			Optional<Map.Entry<Point, Double>> safestMove = probabilities.entrySet().stream()
 					.sorted((e1, e2) -> ((int) (e1.getValue() * 10000)) - ((int) (e2.getValue() * 10000)))
 					.findFirst();
 
@@ -62,11 +63,9 @@ public class MinesweeperSolver {
 				revealTile(safestMove.get().getKey());
 				debug(printDivider());
 			} else {
-				Optional<Point> tileToReveal = unexploredNonFrontierTiles.stream()
-						.sorted((p1, p2) -> (int) (getNeighbors(p1).stream().filter(p -> probabilities.getProbabilities().containsKey(p)).count() - getNeighbors(p2).stream().filter(p -> probabilities.getProbabilities().containsKey(p)).count()))
-						.findFirst();
-				debug(String.format("%s\nNo probabilistic choices, choosing random hidden tile from list of %s", printDivider(), board.getHeight() * board.getWidth() - knownTiles.size()));
-				revealTile(tileToReveal.get()); //ignoring this possible exception
+				debug(String.format("%s\nChose random hidden tile with probability %f", printDivider(), unexploredMineProbability));
+				Collections.shuffle(unexploredNonFrontierTiles);
+				revealTile(unexploredNonFrontierTiles.get(0));
 				debug(printDivider());
 			}
 		}

@@ -9,10 +9,11 @@ import java.util.stream.IntStream;
  */
 public class PresetBoardBenchmark {
 	public static void main(String[] args) throws IOException {
-		final int runs = 100;
-		final int attemptsPerRun = 3;
+		final int runs = 1000;
+		final int attemptsPerRun = 5;
 
 		for (Difficulty d : Difficulty.values()) {
+			long start = System.currentTimeMillis();
 			List<Boolean> games = IntStream.range(0, runs)
 					.parallel()
 					.mapToObj(i -> getOutcome(d, attemptsPerRun))
@@ -20,14 +21,15 @@ public class PresetBoardBenchmark {
 
 			int totalGames = games.size();
 			long totalWins = games.stream().filter(b -> b).count();
-			double winPercentage = 100 * totalWins / (double) games.size();
-			System.out.println(String.format("%12s Win pct: %5d/%-5d (%.3f%%)", d, totalWins, totalGames, winPercentage));
+			System.out.println(String.format("%12s: %5d/%-5d  %5d seconds", d, totalWins, totalGames, (System.currentTimeMillis() - start)/1000));
 		}
 	}
 
 	private static boolean getOutcome(Difficulty d, final int attempts) {
+		MinesweeperBoard b = d.buildBoard();
 		for (int i = 0; i < attempts; i++) {
-			MinesweeperSolver ss = new MinesweeperSolver(d.buildBoard());
+			b.reset();
+			MinesweeperSolver ss = new MinesweeperSolver(b);
 			ss.solve();
 			Boolean isWin = ss.isWin();
 
@@ -40,12 +42,15 @@ public class PresetBoardBenchmark {
 	}
 
 	private enum Difficulty {
+		Weird,
 		Beginner,
 		Intermediate,
 		Expert;
 
 		public MinesweeperBoard buildBoard() {
 			switch (this) {
+				case Weird:
+					return new MinesweeperBoard(5, 3, 4);
 				case Beginner:
 					return new MinesweeperBoard(9, 9, 10);
 				case Intermediate:
